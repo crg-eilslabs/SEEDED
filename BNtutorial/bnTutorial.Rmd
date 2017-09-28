@@ -1,4 +1,4 @@
-0.99\times 0.01 \times 0.2 + 0.8 \times 0.4 \times 0.2---
+---
 title: "Generating bayesian networks of epigenetic regulation in chronic lymphocytic leukemia"
 author: "Carl Herrmann and Ashwini Kumar Sharma"
 date: "September 26, 2017"
@@ -11,7 +11,7 @@ output:
 options(width = 100)
 ```
 ```{r setup, include=FALSE}
-path = "~/Documents/BNtutorial/"
+path = "~/Seminaires/SEEDED/BNtutorial/"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
