@@ -6,10 +6,10 @@ output:
   md_document:
     variant: markdown_github
 #  html_document:
-#    toc: true
-#    toc_depth: 3
+    toc: true
+    toc_depth: 3
 ---
-```{r set-options, echo=FALSE, cache=FALSE}
+```{r set-options, echo=FALSE, cache=TRUE}
 options(width = 100)
 ```
 ```{r setup, include=FALSE}
@@ -59,7 +59,7 @@ p
 ```
 ### Now learn the BN from the discretized data
 
-```{r}
+```{r, cache = TRUE}
 boot = boot.strength(data=dsachs, R=500,
                      algorithm='hc',
                      algorithm.args = list(score='bde', iss=10)
@@ -80,7 +80,7 @@ boot.filt
 
 We have learned 500 networks starting from different initial random networks; we can now average these networks.
 
-```{r}
+```{r, cache = TRUE}
 avg.boot = averaged.network(boot, threshold = 0.85)
 net = avg.boot$arcs
 
@@ -93,7 +93,7 @@ graphviz.plot(avg.boot)
 
 ### use interventional data for Sachs
 
-```{r}
+```{r, cache = TRUE}
 isachs = read.table(file.path(path,'data',"sachs.interventional.txt"), header = TRUE, colClasses = "factor")
 
 

@@ -1,3 +1,13 @@
+-   [Reproduce the networks of Sachs et al. (2005)](#reproduce-the-networks-of-sachs-et-al.-2005)
+    -   [Average the network](#average-the-network)
+    -   [use interventional data for Sachs](#use-interventional-data-for-sachs)
+    -   [Load pre-compiled epigenetic data matrix for CLL](#load-pre-compiled-epigenetic-data-matrix-for-cll)
+    -   [Look at the distribution of the data](#look-at-the-distribution-of-the-data)
+    -   [Perform discretization using Ckmeans.1d.dp](#perform-discretization-using-ckmeans.1d.dp)
+    -   [Learn bayesian network from the discretized data using bnlearn](#learn-bayesian-network-from-the-discretized-data-using-bnlearn)
+    -   [Plotting the bayesian network](#plotting-the-bayesian-network)
+    -   [Making predictions using the network](#making-predictions-using-the-network)
+
 ``` r
 library(ggplot2)
 library(reshape2)
@@ -66,12 +76,12 @@ head(boot)
 ```
 
     ##   from   to strength direction
-    ## 1  Raf  Mek    1.000 0.5160000
-    ## 2  Raf Plcg    0.226 0.5088496
-    ## 3  Raf PIP2    0.042 0.4761905
-    ## 4  Raf PIP3    0.004 0.5000000
+    ## 1  Raf  Mek    1.000 0.5120000
+    ## 2  Raf Plcg    0.232 0.4870690
+    ## 3  Raf PIP2    0.036 0.4722222
+    ## 4  Raf PIP3    0.018 0.5000000
     ## 5  Raf  Erk    0.006 0.5000000
-    ## 6  Raf  Akt    0.008 0.5000000
+    ## 6  Raf  Akt    0.016 0.7500000
 
 ``` r
 dim(boot)
@@ -87,24 +97,23 @@ boot.filt = boot[(boot$strength > 0.85 & boot$direction >= 0.5),]
 dim(boot.filt)
 ```
 
-    ## [1] 11  4
+    ## [1] 10  4
 
 ``` r
 boot.filt
 ```
 
     ##     from   to strength direction
-    ## 1    Raf  Mek    1.000 0.5160000
-    ## 23  Plcg PIP2    1.000 0.5150000
-    ## 24  Plcg PIP3    1.000 0.5290000
-    ## 34  PIP2 PIP3    1.000 0.5160000
-    ## 56   Erk  Akt    1.000 0.5510000
-    ## 57   Erk  PKA    0.982 0.5631365
-    ## 67   Akt  PKA    1.000 0.5660000
-    ## 89   PKC  P38    1.000 0.5070000
-    ## 90   PKC  Jnk    1.000 0.5080000
-    ## 100  P38  Jnk    0.936 0.5000000
-    ## 110  Jnk  P38    0.936 0.5000000
+    ## 1    Raf  Mek    1.000 0.5120000
+    ## 23  Plcg PIP2    1.000 0.5210000
+    ## 24  Plcg PIP3    1.000 0.5230000
+    ## 34  PIP2 PIP3    1.000 0.5090000
+    ## 56   Erk  Akt    1.000 0.5680000
+    ## 57   Erk  PKA    0.992 0.5786290
+    ## 67   Akt  PKA    1.000 0.5750000
+    ## 89   PKC  P38    1.000 0.5120000
+    ## 90   PKC  Jnk    1.000 0.5160000
+    ## 100  P38  Jnk    0.956 0.5115063
 
 ### Average the network
 
@@ -488,15 +497,15 @@ mat = cbind(mat,Probability=round(prob,2))
 |:------------------|:---------|--------------:|----------------:|------------:|
 | Negative          | CPGfrac  |              3|                1|         0.80|
 | Negative          | CPGfrac  |              1|                6|         0.11|
-| Negative          | H3K27me3 |              3|                1|         0.11|
-| Negative          | H3K27me3 |              1|                6|         0.54|
-| Negative          | H3K9me3  |              2|                1|         0.18|
-| Negative          | H3K9me3  |              1|                6|         0.83|
+| Negative          | H3K27me3 |              3|                1|         0.10|
+| Negative          | H3K27me3 |              1|                6|         0.57|
+| Negative          | H3K9me3  |              2|                1|         0.17|
+| Negative          | H3K9me3  |              1|                6|         0.86|
 | Positive          | H3K27ac  |              1|                1|         0.80|
-| Positive          | H3K27ac  |              2|                6|         0.11|
+| Positive          | H3K27ac  |              2|                6|         0.25|
 | Positive          | H3K4me3  |              1|                1|         0.70|
-| Positive          | H3K4me3  |              3|                6|         0.74|
+| Positive          | H3K4me3  |              3|                6|         0.79|
 | Positive          | H3K4me1  |              1|                1|         0.57|
-| Positive          | H3K4me1  |              3|                6|         0.09|
-| Positive          | H3K36me3 |              1|                1|         0.65|
-| Positive          | H3K36me3 |              3|                6|         0.06|
+| Positive          | H3K4me1  |              3|                6|         0.08|
+| Positive          | H3K36me3 |              1|                1|         0.64|
+| Positive          | H3K36me3 |              3|                6|         0.04|
