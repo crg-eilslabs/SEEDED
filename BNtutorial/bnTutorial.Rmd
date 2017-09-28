@@ -28,7 +28,13 @@ library(igraph)
 library(knitr)
 ```
 
-## Reproduce the networks of Sachs et al. (2005)
+# Example 1 : Reproduce the networks of Sachs et al. (2005)
+
+This dataset consists of single-cell cytometry data on 11 proteins in a primary T-cell signaling network, using normal condition ("observational") or perturbed conditions ("interventional").
+
+![Literature validated network](validated_net.jpg)
+
+## exploring the observational data
 
 ```{r}
 sachs = read.table(file.path(path,'data','sachs.data.txt'),header=TRUE)
@@ -43,6 +49,14 @@ p = ggplot(tmp,aes(x=value, fill=variable, color=variable)) +
 
 rm(tmp)
 p
+```
+
+
+## Discretizing the data
+
+We discretize the data, since it does not follow the assumption of normal distribution.
+
+```{r sachs-discretize}
 ## discretize the data
 dsachs = discretize(sachs,method='hartemink',breaks = 3, ibreaks = 60, idisc = 'quantile')
 
@@ -57,7 +71,8 @@ p = ggplot(tmp,aes(x=value, fill=variable, color=variable)) +
 
 p
 ```
-### Now learn the BN from the discretized data
+
+## Learning the BN from discretized data
 
 ```{r, cache = TRUE}
 boot = boot.strength(data=dsachs, R=500,
@@ -76,7 +91,7 @@ dim(boot.filt)
 boot.filt
 ```
 
-### Average the network
+## Averaging the network
 
 We have learned 500 networks starting from different initial random networks; we can now average these networks.
 
@@ -91,11 +106,16 @@ graphviz.plot(avg.boot)
 ```
 
 
-### use interventional data for Sachs
+## Use interventional data for Sachs
+
+So far the network was built using observational data, i.e. data collected in normal conditions.
+The dataset however contained additional interventional data, resulting from perturbation of specific nodes in the network. This data can either be used for validation (do the perturbation have the predicted effect from the initial network ?) or can be used to strengthen the evidence on the learned edges.
 
 ```{r, cache = TRUE}
 isachs = read.table(file.path(path,'data',"sachs.interventional.txt"), header = TRUE, colClasses = "factor")
 
+
+head(isachs)
 
 INT = sapply(1:11, function(x) { which(isachs$INT == x) })
 
@@ -103,7 +123,7 @@ isachs = isachs[, 1:11]
 nodes = names(isachs)
 names(INT) = nodes
 
-
+## we start from a set of 200 random graphs
 start = random.graph(nodes = nodes,  method = "melancon", num = 200, burn.in = 10^5, every = 100)
 
 netlist = lapply(start, function(net) {
@@ -120,8 +140,12 @@ bn.mbde = averaged.network(arcs, threshold = 0.85)
 
 
 
+# Example 2: building an epigenetic networks from CLL data
 
-### Load pre-compiled epigenetic data matrix for CLL
+Here, we want to build a chromatin network where nodes are epigenetic components, and the observations are the state of these epigenetic modifications at the promoters of genes.
+
+## Load pre-compiled epigenetic data matrix for CLL
+
 ```{r}
 dat = read.table(paste0(path,"data/CEMT_26-nonCGI-allDataContinuous.txt"), 
                  header = TRUE, stringsAsFactors = FALSE, sep="\t")
@@ -140,17 +164,17 @@ kable(corVals, caption = "Pairwise correlation values")
 ```
 
 
-#### Visualize how these epigenetic features are correlated
+## Visualize how these epigenetic features are correlated
 ```{r}
 corrplot.mixed(corVals, tl.col = "black", tl.cex=0.8)
 ```
 
-#### Visualize how these correlated features cluster together
+## Visualize how these correlated features cluster together
 ```{r}
 corrplot(corVals, order = "hclust", hclust.method = "ward.D2", addrect = 2, tl.col = "black");rm(corVals)
 ```
 
-### Look at the distribution of the data
+## Look at the distribution of the data
 ```{r}
 summary(dat)
 
@@ -166,9 +190,11 @@ rm(tmp)
 p
 ```
 
-### Perform discretization using Ckmeans.1d.dp
+## Perform discretization using Ckmeans.1d.dp
+
 For details regarding Ckmeans.1d.dp, see <https://cran.r-project.org/web/packages/Ckmeans.1d.dp/vignettes/Ckmeans.1d.dp.html> 
 Lets check the discrete states for H3K4me3 as an example
+
 ```{r}
 res = Ckmeans.1d.dp(log2dat$H3K4me3)
 # Number of clusters predicted
@@ -176,7 +202,7 @@ max(res$cluster)
 
 # Lets look at the predictions
 plot(log2dat$H3K4me3, col= res$cluster, cex=0.5, pch=20, xlab="Genes", ylab= "H3K4me3 signal")
-abline(h=res$centers, lwd=2,lty=2,col="blue")
+#abline(h=res$centers, lwd=2,lty=2,col="blue")
 rm(res)
 
 # Compute optimal states for all
@@ -188,7 +214,7 @@ states = apply(log2dat, 2, function(y){max(Ckmeans.1d.dp(x=y, k=c(1,9))$cluster)
 
 res = Ckmeans.1d.dp(log2dat$CPGfrac, k=c(1,3))
 plot(log2dat$CPGfrac, col= res$cluster, cex=0.5, pch=20, xlab="Genes", ylab= "CPGfrac")
-abline(h=res$centers, lwd=2,lty=2,col="blue")
+#abline(h=res$centers, lwd=2,lty=2,col="blue")
 
 # We accept all the predicted states from Ckmeans.1d.dp except for methylation
 # Final max discrete states are
@@ -212,10 +238,24 @@ rm(i, states)
 # Final view of the discretized data
 summary(disDat)
 
+# Plot the discretized data
+tmp=melt(disDat,id.vars=c())
+p = ggplot(tmp,aes(x=value, fill=variable, color=variable)) + 
+    geom_bar() + theme_bw() +
+    facet_wrap(~variable, scales = "free") + labs(x="Categories")+
+    theme(legend.title = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank()
+          )
+
+p
+
 ```
 
-### Learn bayesian network from the discretized data using bnlearn
-```{r}
+## Learn bayesian network from the discretized data using bnlearn
+
+We use a set of blacklist edges: no edge should go out of the expression node
+```{r, cache = TRUE}
 
 # Black list .. no interaction should originate from gene expression
 bl=data.frame(from="RPKM",to=colnames(disDat))
@@ -229,6 +269,8 @@ rm(bl)
 
 # Select only those interactions meeting our filteration criteria
 selarcs = strength[strength$direction > 0.5 ,]
+selarcs = selarcs[order(selarcs$strength,decreasing=TRUE),]
+selarcs
 
 # Get an averaged network
 dag.average.filt = averaged.network(selarcs, threshold = 0.90)
@@ -249,8 +291,8 @@ corVals = apply(net,1, function(x){
                                   })
 
 # Coloring the correlation values
-col = rep("firebrick",nrow(net))
-col[which(corVals < 0)] = "forestgreen"
+col = rep("forestgreen",nrow(net))
+col[which(corVals < 0)] = "firebrick"
 
 # Setting up the network in igraph
 net = graph_from_edgelist(net,directed=T)
@@ -289,50 +331,44 @@ V(net)$label.dist[mid.grp]= c(-0.3,0.3)
 V(net)$label.degree[mid.grp]= -pi/2
 ```
 
-### Plotting the bayesian network
+## Plotting the bayesian network
 ```{r}
-plot(net, edge.color=col, vertex.shape="none", layout=l, edge.width=E(net)$weight*3.5)
+plot(net, edge.color=col, vertex.shape="circle", vertex.size = 40,layout=l, edge.width=E(net)$weight*3.5+3)
 box();rm(col,l,pos.grp,neg.grp,left.grp,right.grp,mid.grp)
 ```
 
-### Making predictions using the network
+## Inference : making predictions using the network
 ```{r}
 # Fitting the learnt network to the data to obtain
 # conditional probability tables
 fitted = bn.fit(dag.average.filt, disDat)
 
-# Making the following prediction -
-# Setting each node to either high or low w.r.t gene expression
-# Calculating the feasibility probability
-# Using all known interactions to gene expression
 
-mat = matrix(ncol=4, nrow=14)
-colnames(mat) = c("KnownEffectOnExp.","Variable","VariableState","ExpressionState")
-mat = data.frame(mat, stringsAsFactors=F)
+# Predict Expression level by setting DNAme to high/low
+x.high = as.numeric(table(cpdist(fitted,nodes=c('RPKM'),CPGfrac=='3')))
+x.low = as.numeric(table(cpdist(fitted,nodes=c('RPKM'),CPGfrac=='1')))
 
-mat$KnownEffectOnExp. = c(rep("Negative",6), rep("Positive",8))
-mat$Variable = c(
-                  rep("CPGfrac",2), 
-                  rep("H3K27me3",2),
-                  rep("H3K9me3",2), 
-                  rep("H3K27ac",2),
-                  rep("H3K4me3",2), 
-                  rep("H3K4me1",2),
-                  rep("H3K36me3",2)
-                )
-mat$VariableState = c(3,1,3,1,2,1,1,2,1,3,1,3,1,3)
-mat$ExpressionState = c(rep(c(1,6),7))
+pred = data.frame(prop=c(x.high/sum(x.high),x.low/sum(x.low)),
+                  condition=c(rep('DNAme high',length(x.high)),rep('DNAme low',length(x.high))),
+                  Expression=c(1:length(x.high),1:length(x.low))
+)
 
-prob = apply(mat,1,function(x){
-                                  cond1=paste0("(", x[2]," == ",x[3], ")")
-                                  cond2=paste0("(", "RPKM"," == ",x[4], ")")
-                                  cmd = paste0("cpquery(fitted,", cond1,"," , cond2, ")")
-                                  p = eval(parse(text=cmd))
-                                  return(p)
-                              })
-mat = cbind(mat,Probability=round(prob,2))
+ggplot(pred,aes(x=Expression,fill=condition,y=prop)) + geom_bar(stat='identity',position=position_dodge())
+
+
 ```
 
-```{r, echo=F}
-kable(mat, caption = "Predictions using the bayesian network")
+
+```{r}
+# Predict Expression level by setting H3K4me1 to high/low
+x.high = as.numeric(table(cpdist(fitted,nodes=c('RPKM'),H3K4me1=='3')))
+x.low = as.numeric(table(cpdist(fitted,nodes=c('RPKM'),H3K4me1=='1')))
+
+pred = data.frame(prop=c(x.high/sum(x.high),x.low/sum(x.low)),
+                  condition=c(rep('K4me1 high',length(x.high)),rep('K4me1 low',length(x.high))),
+                  Expression=c(1:length(x.high),1:length(x.low))
+)
+
+ggplot(pred,aes(x=Expression,fill=condition,y=prop)) + geom_bar(stat='identity',position=position_dodge())
+
 ```
