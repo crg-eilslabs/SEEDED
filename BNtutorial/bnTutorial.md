@@ -27,7 +27,7 @@ library(knitr)
 Example 1 : Reproduce the networks of Sachs et al. (2005)
 =========================================================
 
-This dataset consists of single-cell cytometry data on 11 proteins in a primary T-cell signaling network, using normal condition ("observational") or perturbed conditions ("interventional").
+This dataset consists of single-cell cytometry data on 11 proteins in a primary T-cell signaling network, using normal condition ("observational") or perturbed conditions ("interventional"). <http://www.sciencemag.org/cgi/doi/10.1126/science.1105809>
 
 ![Literature validated network](validated_net.jpg)
 
@@ -143,64 +143,12 @@ Averaging the network
 We have learned 500 networks starting from different initial random networks; we can now average these networks.
 
 ``` r
-avg.boot = averaged.network(boot, threshold = 0.85)
+avg.boot = averaged.network(boot, threshold = 0.8)
 net = avg.boot$arcs
 
 net = graph_from_edgelist(net,directed=T)
 library(Rgraphviz)
-```
 
-    ## Loading required package: graph
-
-    ## Loading required package: BiocGenerics
-
-    ## Loading required package: parallel
-
-    ## 
-    ## Attaching package: 'BiocGenerics'
-
-    ## The following objects are masked from 'package:parallel':
-    ## 
-    ##     clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
-    ##     clusterExport, clusterMap, parApply, parCapply, parLapply,
-    ##     parLapplyLB, parRapply, parSapply, parSapplyLB
-
-    ## The following objects are masked from 'package:igraph':
-    ## 
-    ##     normalize, union
-
-    ## The following object is masked from 'package:bnlearn':
-    ## 
-    ##     score
-
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     IQR, mad, xtabs
-
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     anyDuplicated, append, as.data.frame, cbind, colnames,
-    ##     do.call, duplicated, eval, evalq, Filter, Find, get, grep,
-    ##     grepl, intersect, is.unsorted, lapply, lengths, Map, mapply,
-    ##     match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
-    ##     Position, rank, rbind, Reduce, rownames, sapply, setdiff,
-    ##     sort, table, tapply, union, unique, unsplit, which, which.max,
-    ##     which.min
-
-    ## 
-    ## Attaching package: 'graph'
-
-    ## The following objects are masked from 'package:igraph':
-    ## 
-    ##     degree, edges, intersection
-
-    ## The following objects are masked from 'package:bnlearn':
-    ## 
-    ##     degree, nodes, nodes<-
-
-    ## Loading required package: grid
-
-``` r
 graphviz.plot(avg.boot)
 ```
 
@@ -211,9 +159,10 @@ Use interventional data for Sachs
 
 So far the network was built using observational data, i.e. data collected in normal conditions. The dataset however contained additional interventional data, resulting from perturbation of specific nodes in the network. This data can either be used for validation (do the perturbation have the predicted effect from the initial network ?) or can be used to strengthen the evidence on the learned edges.
 
+![Effect of interventions on the network](interventions.jpg)
+
 ``` r
 isachs = read.table(file.path(path,'data',"sachs.interventional.txt"), header = TRUE, colClasses = "factor")
-
 
 head(isachs)
 ```
@@ -229,21 +178,30 @@ head(isachs)
 ``` r
 INT = sapply(1:11, function(x) { which(isachs$INT == x) })
 
-isachs = isachs[, 1:11]
-nodes = names(isachs)
+isachs2 = isachs[, 1:11]
+nodes = names(isachs2)
 names(INT) = nodes
 
 ## we start from a set of 200 random graphs
 start = random.graph(nodes = nodes,  method = "melancon", num = 200, burn.in = 10^5, every = 100)
 
 netlist = lapply(start, function(net) {
-  tabu(isachs, score = "mbde", exp = INT, iss = 1, start = net, tabu = 50) }
+  tabu(isachs2, score = "mbde", exp = INT, iss = 1, start = net, tabu = 50) }
   )
 
 arcs = custom.strength(netlist, nodes = nodes, cpdag = FALSE)
 
 bn.mbde = averaged.network(arcs, threshold = 0.85)
+
+net = bn.mbde$arcs
+net = graph_from_edgelist(net,directed=T)
+
+library(Rgraphviz)
+
+graphviz.plot(bn.mbde)
 ```
+
+![](bnTutorial_files/figure-markdown_github/unnamed-chunk-5-1.png)
 
 Example 2: building an epigenetic networks from CLL data
 ========================================================
